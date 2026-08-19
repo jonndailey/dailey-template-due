@@ -1,0 +1,16 @@
+{
+  "name": "dailey-template-due",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm -w @due/api run dev\" \"npm -w @due/web run dev\"",
+    "build": "npm -w @due/web run build",
+    "start": "npm -w @due/api run start",
+    "db:migrate": "npm -w @due/api run db:migrate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

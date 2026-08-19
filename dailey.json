@@ -1,0 +1,13 @@
+{
+  "name": "Due Task Manager",
+  "description": "Keyboard-first to-do app with projects, focus sprints, and file attachments. Teaches the database, storage, and Dailey Core auth primitives.",
+  "icon": "check-square",
+  "category": "starter",
+  "services": { "database": true, "storage": true, "auth": true },
+  "repo": "https://github.com/jonndailey/dailey-template-due.git",
+  "branch": "main",
+  "env": {
+    "DAILEY_APP_ID": { "label": "Dailey Core client id (your project slug, from auth enable)" }
+  },
+  "notes": "Enable Dailey Core auth for the project (dailey_auth_enable), then set DAILEY_APP_ID to the returned client id. Users sign in with their Dailey account."
+}

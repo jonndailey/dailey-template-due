@@ -1,0 +1,8 @@
+node_modules/
+# package-lock.json is tracked — needed for npm ci in Docker builds
+apps/*/node_modules/
+apps/web/dist/
+.env
+*.log
+uploads/
+cf_token*
