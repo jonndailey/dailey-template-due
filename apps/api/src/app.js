@@ -5,9 +5,11 @@ import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
+import { readinessReport } from './health-state.js';
 import { registerRoutes } from './routes/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const SERVICE_NAME = 'dailey-template-due';
 
 export function createApp() {
   const app = express();
@@ -25,9 +27,19 @@ export function createApp() {
   );
   app.use(express.json({ limit: '20mb' }));
 
-  app.get('/health/live', (req, res) => res.json({ ok: true, service: 'dailey-template-due' }));
-  app.get('/health/ready', (req, res) => res.json({ ok: true, service: 'dailey-template-due' }));
-  app.get('/healthz', (req, res) => res.json({ ok: true }));
+  // Liveness: is the process up. Always 200 while we can answer at all.
+  app.get('/health/live', (req, res) => res.json({ ok: true, service: SERVICE_NAME }));
+  app.get('/healthz', (req, res) => res.json({ ok: true, service: SERVICE_NAME }));
+
+  // Readiness: is the app actually able to do its job. This used to return
+  // `{ok:true}` unconditionally, which made it worse than having no endpoint at
+  // all — it actively asserted health while the schema was frozen and every
+  // task operation was failing. It now reports the real migration state and
+  // answers 503 when the app is serving but not working.
+  app.get('/health/ready', (req, res) => {
+    const report = readinessReport(SERVICE_NAME);
+    res.status(report.ok ? 200 : 503).json(report);
+  });
 
   registerRoutes(app);
 
