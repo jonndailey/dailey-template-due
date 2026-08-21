@@ -1,15 +1,19 @@
+-- NOTE: `ADD COLUMN IF NOT EXISTS` is MariaDB-only syntax and is a parse error
+-- on MySQL 8 (which is what Dailey OS provisions). Plain `ADD COLUMN` is used
+-- instead; the migration runner treats "already exists" errors as no-ops so
+-- re-running a partially applied migration still converges.
 ALTER TABLE workspace_memberships
-  ADD COLUMN IF NOT EXISTS display_name VARCHAR(255) NULL AFTER email;
+  ADD COLUMN display_name VARCHAR(255) NULL AFTER email;
 
 UPDATE workspace_memberships
 SET display_name = COALESCE(display_name, email, core_user_id)
 WHERE display_name IS NULL;
 
 ALTER TABLE assignments_projects
-  ADD COLUMN IF NOT EXISTS blitz_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER color_hex;
+  ADD COLUMN blitz_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER color_hex;
 
 ALTER TABLE assignments_tasks
-  ADD COLUMN IF NOT EXISTS is_pinned TINYINT(1) NOT NULL DEFAULT 0 AFTER priority;
+  ADD COLUMN is_pinned TINYINT(1) NOT NULL DEFAULT 0 AFTER priority;
 
 CREATE INDEX idx_task_pinned ON assignments_tasks (is_pinned);
 

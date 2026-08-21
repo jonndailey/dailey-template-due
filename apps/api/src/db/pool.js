@@ -33,13 +33,38 @@ export async function withTx(fn) {
   }
 }
 
+// MySQL has no `IF NOT EXISTS` for ADD COLUMN / CREATE INDEX (that is MariaDB
+// syntax and a parse error here), so idempotency is enforced at the runner
+// instead: an object that already exists is a satisfied precondition, not a
+// failure. Without this, a migration that dies half-way — or one re-applied
+// against a database that already has the objects — wedges the retry loop
+// forever and the app silently serves with an un-migrated schema.
+const ALREADY_APPLIED_ERRORS = new Set([
+  'ER_TABLE_EXISTS_ERROR',   // 1050 CREATE TABLE
+  'ER_DUP_FIELDNAME',        // 1060 ADD COLUMN
+  'ER_DUP_KEYNAME',          // 1061 CREATE INDEX / ADD KEY
+  'ER_DUP_ENTRY',            // 1062 UNIQUE backfill
+  'ER_CANT_DROP_FIELD_OR_KEY', // 1091 DROP COLUMN/INDEX that is already gone
+  'ER_FK_DUP_NAME',          // 1826 duplicate FOREIGN KEY constraint name
+]);
+
 export async function runSqlFile(conn, filename) {
   const sql = await fs.readFile(filename, 'utf8');
   for (const statement of sql
     .split(/;\s*\n/g)
     .map((part) => part.trim())
     .filter(Boolean)) {
-    await conn.query(statement);
+    try {
+      await conn.query(statement);
+    } catch (error) {
+      if (ALREADY_APPLIED_ERRORS.has(error?.code)) {
+        console.warn(
+          `${path.basename(filename)}: skipping already-applied statement (${error.code})`,
+        );
+        continue;
+      }
+      throw error;
+    }
   }
 }
 
